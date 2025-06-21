@@ -8,7 +8,23 @@ app.use(bodyParser.json());
 
 const token = process.env.ACCESS_TOKEN;
 const phoneNumberId = process.env.PHONE_NUMBER_ID;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
+// ✅ Webhook Verification (GET /webhook)
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const tokenFromMeta = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode === "subscribe" && tokenFromMeta === VERIFY_TOKEN) {
+    console.log("WEBHOOK_VERIFIED");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+// ✅ WhatsApp Message Handler (POST /webhook)
 app.post("/webhook", async (req, res) => {
   try {
     const entry = req.body.entry?.[0];
@@ -40,15 +56,17 @@ app.post("/webhook", async (req, res) => {
 
     res.sendStatus(200);
   } catch (error) {
-    console.error("Webhook error:", error.message);
+    console.error("Error in /webhook POST:", error.message);
     res.sendStatus(500);
   }
 });
 
+// ✅ Root Route (optional for Render health check)
 app.get("/", (req, res) => {
   res.send("WhatsApp bot is running");
 });
 
+// ✅ Start Server
 app.listen(process.env.PORT || 3000, () =>
-  console.log("Server is up and running")
+  console.log("Server is up and running on port", process.env.PORT || 3000)
 );
